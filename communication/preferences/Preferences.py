@@ -4,6 +4,7 @@ from CriterionName import CriterionName
 from CriterionValue import CriterionValue
 from Item import Item
 from Value import Value
+import random
 
 
 class Preferences:
@@ -66,8 +67,14 @@ class Preferences:
     def most_preferred(self, item_list):
         """Returns the most preferred item from a list.
         """
-        # To be completed
-        return best_item
+        best_items = [item_list[0]]
+        for item in item_list[1:]:
+            if self.is_preferred_item(item, best_items[0]):
+                best_items = [item]
+            elif best_items[0].get_score(self) == item.get_score(self):
+                best_items.append(item)
+        
+        return random.choice(best_items)
 
     def is_item_among_top_10_percent(self, item, item_list):
         """
@@ -75,8 +82,11 @@ class Preferences:
 
         :return: a boolean, True means that the item is among the favourite ones
         """
-        # To be completed
-        return is_top_item
+        scores = [item_.get_score(self) for item_ in item_list]
+        scores.sort(reverse=True)
+        item_score_index = scores.index(item.get_score(self))
+
+        return item_score_index / len(scores) < 0.1
 
 
 if __name__ == '__main__':
