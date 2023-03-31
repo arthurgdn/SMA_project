@@ -42,6 +42,6 @@ class Item:
         criterion_weight = 100
         sum_result = 0
         for criterion_name in preferences.get_criterion_name_list():
-            sum_result = sum_result + criterion_weight * self.get_value(preferences, criterion_name).value
+            sum_result = sum_result + criterion_weight * self.get_value(preferences, criterion_name)
             criterion_weight = criterion_weight / 2
         return sum_result
