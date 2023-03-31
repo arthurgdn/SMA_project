@@ -65,6 +65,8 @@ class ArgumentAgent(CommunicatingAgent) :
             for criterion_name in criterion_name_list:
                 self.preference.add_criterion_value(CriterionValue(item,criterion_name, random.randint(1,5)))
 
+                
+
 class ArgumentModel(Model) :
     """ ArgumentModel which inherit from Model .
     """

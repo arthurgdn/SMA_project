@@ -32,3 +32,11 @@ class Argument:
         """Adds a premis couple values in the couple values list.
         """
         self.couple_values_list.append(CoupleValue(criterion_name, value))
+
+    def List_supporting_proposal(self, item, preferences):
+        """ Generate a list of premisses which can be used to support an item
+        : param item : Item - name of the item
+        : return : list of all premisses PRO an item ( sorted by order of importance
+        based on agent’s preferences )
+        """
+        return 
