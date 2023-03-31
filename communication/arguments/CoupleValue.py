@@ -10,4 +10,5 @@ class CoupleValue:
         """ Creates a new couple value .
         """
 
-        # To be completed
+        self.criterion_name = criterion_name
+        self.value = value
