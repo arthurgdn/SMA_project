@@ -7,6 +7,7 @@ from communication.preferences.Preferences import Preferences
 from communication.preferences.Item import Item
 from communication.preferences.CriterionName import CriterionName
 from communication.preferences.CriterionValue import CriterionValue
+import random
 
 class ArgumentAgent(CommunicatingAgent) :
     """ ArgumentAgent which inherit from CommunicatingAgent .
@@ -25,7 +26,8 @@ class ArgumentAgent(CommunicatingAgent) :
         criterion_name_list = [CriterionName.CONSUMPTION, CriterionName.DURABILITY, CriterionName.ENVIRONMENT_IMPACT, CriterionName.NOISE, CriterionName.PRODUCTION_COST]
         self.preference.set_criterion_name_list(criterion_name_list)
         for item in List_items:
-            self.preference.add_criterion_value(CriterionValue(item, ))
+            for criterion_name in criterion_name_list:
+                self.preference.add_criterion_value(CriterionValue(item,criterion_name, random.randint(1,5)))
 
 class ArgumentModel(Model) :
     """ ArgumentModel which inherit from Model .
