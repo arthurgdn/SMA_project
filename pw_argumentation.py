@@ -1,5 +1,6 @@
 from copy import deepcopy
 import random
+from communication.arguments.CoupleValue import CoupleValue
 from mesa import Model
 from mesa.time import RandomActivation
 
@@ -13,6 +14,8 @@ from communication.preferences.Preferences import Preferences
 from communication.preferences.Item import Item
 from communication.preferences.CriterionName import CriterionName
 from communication.preferences.CriterionValue import CriterionValue
+
+from communication.arguments.Argument import Argument
 
 
 class ArgumentAgent(CommunicatingAgent) :
@@ -64,6 +67,46 @@ class ArgumentAgent(CommunicatingAgent) :
         for item in List_items:
             for criterion_name in criterion_name_list:
                 self.preference.add_criterion_value(CriterionValue(item,criterion_name, random.randint(1,5)))
+    
+    def List_supporting_proposal(self, item, preferences):
+        """ Generate a list of premisses which can be used to support an item
+        : param item : Item - name of the item
+        : return : list of all premisses PRO an item ( sorted by order of importance
+        based on agent’s preferences )
+        """
+        supporting_premisses = []
+        for criterion_name in self.preference.get_criterion_name_list():
+            value = self.preference.get_value(item, criterion_name)
+            if value >= 4:
+                argument = Argument(True, item)
+                argument.add_premiss_couple_values(CoupleValue(criterion_name, value))
+                supporting_premisses.append({"argument": argument, "value": value})
+        supporting_premisses.sort(key=lambda premiss:premiss["value"], reverse=True)
+
+        result = []
+        for supporting_premiss in supporting_premisses:
+            result.append(supporting_premiss["argument"])
+        return result
+    
+    def List_attacking_proposal(self, item, preferences):
+        """ Generate a list of premisses which can be used to attack an item
+        : param item : Item - name of the item
+        : return : list of all premisses CON an item ( sorted by order of importance
+        based on preferences )
+        """
+        attacking_premisses = []
+        for criterion_name in self.preference.get_criterion_name_list():
+            value = self.preference.get_value(item, criterion_name)
+            if value <= 2:
+                argument = Argument(False, item)
+                argument.add_premiss_couple_values(CoupleValue(criterion_name, value))
+                attacking_premisses.append({"argument": argument, "value": value})
+        attacking_premisses.sort(key=lambda premiss:premiss["value"], reverse=True)
+
+        result = []
+        for attacking_premiss in attacking_premisses:
+            result.append(attacking_premiss["argument"])
+        return result
 
                 
 
