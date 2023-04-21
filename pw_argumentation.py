@@ -1,4 +1,5 @@
 from copy import deepcopy
+from tqdm import tqdm
 import random
 from communication.arguments.CoupleValue import CoupleValue
 from mesa import Model
@@ -34,78 +35,102 @@ class ArgumentAgent(CommunicatingAgent) :
         for message in list_messages:
             item = message.get_content()
             performative = message.get_performative()
-            if performative == MessagePerformative.PROPOSE:
 
+            if performative == MessagePerformative.PROPOSE:
+                # If the proposed item is in the best items, the agent accepts it
                 if self.preference.is_item_among_top_10_percent(item, self.model.items):
                     message_to_send = Message(self.get_name(), message.get_exp(), MessagePerformative.ACCEPT, item)
                     self.send_message(message_to_send)
                     print(self.get_name() + " : accept item")
+                # Else it asks why
                 else:
                     message_to_send = Message(self.get_name(), message.get_exp(), MessagePerformative.ASK_WHY, item)
                     self.send_message(message_to_send)
                     print(self.get_name() + " : why ?")
 
+            # If we receive an accept => the agent commits : we remove the item from the list to verify if it's already committed
             elif performative == MessagePerformative.ACCEPT and item in self.list_items:
                 self.send_message(Message(self.get_name(), message.get_exp(), MessagePerformative.COMMIT, item))
                 self.list_items.remove(item)
                 print(self.get_name() + " : commit")
             
+            # If we receive a give up=> the agent 'has won' and can commit its preferred item
+            elif performative == MessagePerformative.GIVEUP:
+                best_item = self.preference.most_preferred(self.list_items)
+                self.list_items.remove(best_item)
+                self.send_message(Message(self.get_name(), message.get_exp(), MessagePerformative.COMMIT, best_item))
+                print(self.get_name() + " : commit")
+            
+            # If we receive a commit => if the item was not already committed, the agent commits it
             elif performative == MessagePerformative.COMMIT and item in self.list_items:
                 self.send_message(Message(self.get_name(), message.get_exp(), MessagePerformative.COMMIT, item))
                 self.list_items.remove(item)
                 print(self.get_name() + " : commit")
             
+            # If we receive an AskWhy => the agent supports the item it had proposed
             elif performative == MessagePerformative.ASK_WHY:
                 premiss = self.support_proposal(item)
-                self.send_message(Message(self.get_name(), message.get_exp(), MessagePerformative.ARGUE, premiss))
-                print(self.get_name() + " : argue : " + str(premiss))
-                self.arguments_given.append(premiss)
+                if premiss:
+                    self.send_message(Message(self.get_name(), message.get_exp(), MessagePerformative.ARGUE, premiss))
+                    print(self.get_name() + " : argue : " + str(premiss))
+                    self.arguments_given.append(premiss)
+                #If there is no supporting proposal for his best item, the agent gives up    
+                else:
+                    message_to_send = Message(self.get_name(), message.get_exp(), MessagePerformative.GIVEUP, item)
+                    self.send_message(message_to_send)
+                    print(self.get_name() + " : give up")
+                    self.model.not_succeeded = True
 
+            # If we receive an argument
             elif performative == MessagePerformative.ARGUE:
                 item_argument = item
+
+                # If its a supportive argument
                 if item_argument.decision:
+                    # We find if we can attack it
                     can_attack, argument = self.can_attack_argument(item)
-                    if can_attack:
+                    if can_attack: # The agent sends a counter argument
                         self.send_message(Message(self.get_name(), message.get_exp(), MessagePerformative.ARGUE, argument))
                         print(self.get_name() + " : argue : " + str(argument))
                         self.arguments_given.append(argument)
-                    else:
+                    else: # The agent accepts it
                         message_to_send = Message(self.get_name(), message.get_exp(), MessagePerformative.ACCEPT, item_argument.item)
                         self.send_message(message_to_send)
                         print(self.get_name() + " : accept item")
 
+                # If its a negative argument
                 elif not item_argument.decision:
                     item_search = item_argument.item
                     premiss = self.support_proposal(item_search)
-
-                    if premiss is None:
-                        liste_items_given = [argument.item for argument in self.arguments_given]
-                        liste_items_not_given = [item for item in self.list_items if item not in liste_items_given]
-
-                        if len(liste_items_not_given) > 0:
-                            premiss = self.support_proposal(self.preference.most_preferred(liste_items_not_given))
-                            self.send_message(Message(self.get_name(), message.get_exp(), MessagePerformative.ARGUE, premiss))
-                            print(self.get_name() + " : argue : " + str(premiss))
-                            self.arguments_given.append(premiss)
-
-                        else:
-                            message_to_send = Message(self.get_name(), message.get_exp(), MessagePerformative.REFUSE, item)
-                            self.send_message(message_to_send)
-                            print(self.get_name() + " : refuse item")
-                    else:
+                    
+                    # If the agent finds a counter argument, it sends it
+                    if premiss is not None:
                         self.send_message(Message(self.get_name(), message.get_exp(), MessagePerformative.ARGUE, premiss))
                         print(self.get_name() + " : argue : " + str(premiss))
                         self.arguments_given.append(premiss)
             
-            elif performative == MessagePerformative.REFUSE:
-                best_item = self.preference.most_preferred(self.list_items)
-                self.list_items.remove(best_item)
-                self.send_message(Message(self.get_name(), message.get_exp(), MessagePerformative.COMMIT, best_item))
-                print(self.get_name() + " : commit")
-                self.model.not_succeeded = True
-            else: self.model.argumentation_finished = True
+                    # If we can not find a supportive counter argument
+                    else: 
+                        # We build the list of items that were not already argued/proposed
+                        liste_items_given = [argument.item for argument in self.arguments_given]
+                        liste_items_not_given = [item for item in self.list_items if item not in liste_items_given]
 
-                
+                        # If there are items that were not already proposed
+                        if len(liste_items_not_given) > 0:
+                            # the agent proposes its preferred one
+                            preferred_item = self.preference.most_preferred(liste_items_not_given)
+                            self.send_message(Message(self.get_name(), message.get_exp(), MessagePerformative.PROPOSE, preferred_item))
+                            print("{} to {} : {}".format(self.get_name(), message.get_exp(), preferred_item.get_name()))
+
+                        # If all the items were already proposed and argued, the agent gives up
+                        else:
+                            message_to_send = Message(self.get_name(), message.get_exp(), MessagePerformative.GIVEUP, item)
+                            self.send_message(message_to_send)
+                            print(self.get_name() + " : give up")
+                            self.model.not_succeeded = True
+            else: self.model.argumentation_finished = True
+                        
+                   
     def get_preference(self):
         return self.preference
 
@@ -209,11 +234,15 @@ class ArgumentModel(Model):
         self.schedule = RandomActivation (self)
         self.__messages_service = MessageService(self.schedule)
         #Generate items
-        self.items = [Item("ICED", "ICE Diesel Engine"), Item("E", "Electric Engine")]
+        self.items = [Item("ICED", "ICE Diesel Engine"), Item("E", "Electric Engine"), Item("V", "V Engine"), Item("L", "L Engine"), Item("R", "R Engine"), Item("O", "O Engine"), Item("M", "M Engine")]
         self.argumentation_finished = False
         self.not_succeeded = False
+        self.generate_agents()
         
         #Generate agents
+    def generate_agents(self):
+        for agent in self.schedule.agents:
+            self.schedule.remove(agent)
         for i in range(1,3): #we can modify this later to handle n agents
             preferences = Preferences()
             agent = ArgumentAgent(i, self, "Agent"+str(i), preferences)
@@ -221,16 +250,21 @@ class ArgumentModel(Model):
             self.schedule.add(agent)
         self.running = True
 
+    def reset(self):
+        self.argumentation_finished = False
+        self.not_succeeded = False
+        self.generate_agents()
+
     def step(self):
         self.__messages_service.dispatch_messages()
         done = self.schedule.step()
 
-def start_argumentation():
-    argument_model = ArgumentModel()
+def start_argumentation(argument_model):
+    argument_model.reset()
     agent1 = argument_model.schedule.agents[0]
     agent2 = argument_model.schedule.agents[1]
 
-    proposed_item = random.choice(argument_model.items)
+    proposed_item = agent1.preference.most_preferred(argument_model.items)
     message = Message(agent1.get_name(), agent2.get_name(), MessagePerformative.PROPOSE, proposed_item)
     agent1.send_message(message)
     print("Agent1 to Agent2: ", proposed_item.get_name())
@@ -242,4 +276,11 @@ def start_argumentation():
     return step, argument_model.not_succeeded
 
 if __name__ == "__main__":
-    steps, not_succeeded = start_argumentation()
+    total_steps = 0
+    total_not_succeeded = 0
+    argument_model = ArgumentModel()
+    for i in tqdm(range(1000)):
+        steps, not_succeeded = start_argumentation(argument_model)
+        total_steps+= steps
+        total_not_succeeded += 1 if not_succeeded else 0
+    print(total_steps, total_not_succeeded)
