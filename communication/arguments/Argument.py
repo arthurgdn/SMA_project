@@ -24,7 +24,7 @@ class Argument:
         self.couple_values_list = []
 
     def __str__(self):
-        string = str(self.item) + " : "
+        string = ("" if self.decision else "not ") + str(self.item) + " : "
         for couple_value in self.couple_values_list:
             string += couple_value.criterion_name.name + " = " + str(couple_value.value) + " "
         for comparison in self.comparison_list:

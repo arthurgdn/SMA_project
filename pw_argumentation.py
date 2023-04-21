@@ -58,6 +58,22 @@ class ArgumentAgent(CommunicatingAgent) :
                 premiss = self.support_proposal(item)
                 self.send_message(Message(self.get_name(), message.get_exp(), MessagePerformative.ARGUE, premiss))
                 print(self.get_name() + " : argue : " + str(premiss))
+            elif performative == MessagePerformative.ARGUE:
+                item_argument = item
+                if item_argument.decision:
+                    can_attack, argument = self.can_attack_argument(item)
+                    if can_attack:
+                        self.send_message(Message(self.get_name(), message.get_exp(), MessagePerformative.ARGUE, argument))
+                        print(self.get_name() + " : argue : " + str(argument))
+                    else:
+                        message_to_send = Message(self.get_name(), message.get_exp(), MessagePerformative.ACCEPT, item)
+                        self.send_message(message_to_send)
+                        print(self.get_name() + " : accept item")
+                elif not item_argument.decision:
+                    premiss = self.support_proposal(item_argument.item)
+                    self.send_message(Message(self.get_name(), message.get_exp(), MessagePerformative.ARGUE, premiss))
+                    print(self.get_name() + " : argue : " + str(premiss))
+
 
     def get_preference(self):
         return self.preference
@@ -100,7 +116,7 @@ class ArgumentAgent(CommunicatingAgent) :
             value = preferences.get_value(item, criterion_name)
             if value <= 2:
                 argument = Argument(False, item)
-                argument.add_premiss_couple_values(CoupleValue(criterion_name, value))
+                argument.add_premiss_couple_values(criterion_name, value)
                 attacking_premisses.append({"argument": argument, "value": value})
         attacking_premisses.sort(key=lambda premiss:premiss["value"], reverse=True)
 
@@ -118,7 +134,7 @@ class ArgumentAgent(CommunicatingAgent) :
         supporting_premisses = self.List_supporting_proposal(item, self.preference)
         return supporting_premisses[0]
 
-    def can_attack (self, argument):
+    def can_attack_argument(self, argument):
         """ returns if an argument can be attacked
         : param argument :
         : return : boolean, Argument
@@ -139,7 +155,7 @@ class ArgumentAgent(CommunicatingAgent) :
                 if item.get_name() != argument.item.get_name() and self.preference.is_preferred_item(item, argument.item) and  criterion_value > couple_value.value:
                     preferred_item = item
             if preferred_item:
-                attack = Argument(False, item)
+                attack = Argument(True, preferred_item)
                 attack.add_premiss_couple_values(couple_value.criterion_name, self.preference.get_value(preferred_item, couple_value.criterion_name))
                 return True, attack
             
@@ -179,6 +195,6 @@ if __name__ == "__main__":
     print("Agent1 to Agent2: ", proposed_item.get_name())
 
     step = 0
-    while step < 10:
+    while step < 50:
         argument_model.step()
         step += 1
