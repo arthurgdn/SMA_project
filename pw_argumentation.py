@@ -25,6 +25,7 @@ class ArgumentAgent(CommunicatingAgent) :
         super().__init__ (unique_id, model, name)
         self.preference = preferences
         self.list_items = [item for item in self.model.items]
+        self.arguments_given = []
 
     def step(self) :
         super().step()
@@ -58,6 +59,8 @@ class ArgumentAgent(CommunicatingAgent) :
                 premiss = self.support_proposal(item)
                 self.send_message(Message(self.get_name(), message.get_exp(), MessagePerformative.ARGUE, premiss))
                 print(self.get_name() + " : argue : " + str(premiss))
+                self.arguments_given.append(premiss)
+
             elif performative == MessagePerformative.ARGUE:
                 item_argument = item
                 if item_argument.decision:
@@ -65,16 +68,44 @@ class ArgumentAgent(CommunicatingAgent) :
                     if can_attack:
                         self.send_message(Message(self.get_name(), message.get_exp(), MessagePerformative.ARGUE, argument))
                         print(self.get_name() + " : argue : " + str(argument))
+                        self.arguments_given.append(argument)
                     else:
-                        message_to_send = Message(self.get_name(), message.get_exp(), MessagePerformative.ACCEPT, item)
+                        message_to_send = Message(self.get_name(), message.get_exp(), MessagePerformative.ACCEPT, item_argument.item)
                         self.send_message(message_to_send)
                         print(self.get_name() + " : accept item")
-                elif not item_argument.decision:
-                    premiss = self.support_proposal(item_argument.item)
-                    self.send_message(Message(self.get_name(), message.get_exp(), MessagePerformative.ARGUE, premiss))
-                    print(self.get_name() + " : argue : " + str(premiss))
-            else: return True
 
+                elif not item_argument.decision:
+                    item_search = item_argument.item
+                    premiss = self.support_proposal(item_search)
+
+                    if premiss is None:
+                        liste_items_given = [argument.item for argument in self.arguments_given]
+                        liste_items_not_given = [item for item in self.list_items if item not in liste_items_given]
+
+                        if len(liste_items_not_given) > 0:
+                            premiss = self.support_proposal(self.preference.most_preferred(liste_items_not_given))
+                            self.send_message(Message(self.get_name(), message.get_exp(), MessagePerformative.ARGUE, premiss))
+                            print(self.get_name() + " : argue : " + str(premiss))
+                            self.arguments_given.append(premiss)
+
+                        else:
+                            message_to_send = Message(self.get_name(), message.get_exp(), MessagePerformative.REFUSE, item)
+                            self.send_message(message_to_send)
+                            print(self.get_name() + " : refuse item")
+                    else:
+                        self.send_message(Message(self.get_name(), message.get_exp(), MessagePerformative.ARGUE, premiss))
+                        print(self.get_name() + " : argue : " + str(premiss))
+                        self.arguments_given.append(premiss)
+            
+            elif performative == MessagePerformative.REFUSE:
+                best_item = self.preference.most_preferred(self.list_items)
+                self.list_items.remove(best_item)
+                self.send_message(Message(self.get_name(), message.get_exp(), MessagePerformative.COMMIT, best_item))
+                print(self.get_name() + " : commit")
+                self.model.not_succeeded = True
+            else: self.model.argumentation_finished = True
+
+                
     def get_preference(self):
         return self.preference
 
@@ -102,7 +133,8 @@ class ArgumentAgent(CommunicatingAgent) :
 
         result = []
         for supporting_premiss in supporting_premisses:
-            result.append(supporting_premiss["argument"])
+            if supporting_premiss["argument"] not in self.arguments_given:
+                result.append(supporting_premiss["argument"])
         return result
     
     def List_attacking_proposal(self, item, preferences):
@@ -122,7 +154,8 @@ class ArgumentAgent(CommunicatingAgent) :
 
         result = []
         for attacking_premiss in attacking_premisses:
-            result.append(attacking_premiss["argument"])
+            if attacking_premiss["argument"] not in self.arguments_given:
+                result.append(attacking_premiss["argument"])
         return result
     
     def support_proposal(self, item):
@@ -132,7 +165,9 @@ class ArgumentAgent(CommunicatingAgent) :
         : return : string - the strongest supportive argument
         """
         supporting_premisses = self.List_supporting_proposal(item, self.preference)
-        return supporting_premisses[0]
+        if len(supporting_premisses) > 0:
+            return supporting_premisses[0]
+        return None
 
     def can_attack_argument(self, argument):
         """ returns if an argument can be attacked
@@ -164,6 +199,8 @@ class ArgumentAgent(CommunicatingAgent) :
             attacking_proposals = self.List_attacking_proposal(argument.item, self.preference)
             if len(attacking_proposals) > 0:
                 return True, attacking_proposals[0]
+        
+        return False, None
 
 class ArgumentModel(Model):
     """ ArgumentModel which inherit from Model .
@@ -174,6 +211,7 @@ class ArgumentModel(Model):
         #Generate items
         self.items = [Item("ICED", "ICE Diesel Engine"), Item("E", "Electric Engine")]
         self.argumentation_finished = False
+        self.not_succeeded = False
         
         #Generate agents
         for i in range(1,3): #we can modify this later to handle n agents
@@ -186,10 +224,8 @@ class ArgumentModel(Model):
     def step(self):
         self.__messages_service.dispatch_messages()
         done = self.schedule.step()
-        if done:
-            self.argumentation_finished = True
 
-if __name__ == "__main__":
+def start_argumentation():
     argument_model = ArgumentModel()
     agent1 = argument_model.schedule.agents[0]
     agent2 = argument_model.schedule.agents[1]
@@ -200,6 +236,10 @@ if __name__ == "__main__":
     print("Agent1 to Agent2: ", proposed_item.get_name())
 
     step = 0
-    while step < 50:
+    while not argument_model.argumentation_finished:
         argument_model.step()
         step += 1
+    return step, argument_model.not_succeeded
+
+if __name__ == "__main__":
+    steps, not_succeeded = start_argumentation()

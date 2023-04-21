@@ -14,3 +14,7 @@ class Comparison :
         """
         self.best_criterion_name = best_criterion_name
         self.worst_criterion_name = worst_criterion_name
+    
+    def __eq__(self, other):
+        equal = (self.best_criterion_name == other.best_criterion_name) and (self.worst_criterion_name == other.worst_criterion_name)
+        return equal

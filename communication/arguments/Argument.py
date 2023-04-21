@@ -30,6 +30,11 @@ class Argument:
         for comparison in self.comparison_list:
             string += comparison.best_criterion_name + " > " + comparison.worst_criterion_name + " "
         return string
+
+    def __eq__(self, other):
+        equal1 = (self.decision == other.decision) and (self.item.get_name() == other.item.get_name())
+        equal2 = (self.comparison_list == other.comparison_list) and (self.couple_values_list == other.couple_values_list)
+        return (equal1 and equal2)
     
     def add_premiss_comparison(self, criterion_name_1, criterion_name_2):
         """Adds a premiss comparison in the comparison list.
