@@ -179,6 +179,8 @@ class ArgumentAgent(CommunicatingAgent) :
                 attack = Argument(False, argument.item)
                 attack.add_premiss_couple_values(couple_value.criterion_name, self_couple_value)
                 return True, attack
+            if self_couple_value >= 4 and couple_value.value >=4:
+                return False, None
             
             # The argument can be attacked if the agent prefers another item on the same criterion value suggested by the other agent
             preferred_item = None
