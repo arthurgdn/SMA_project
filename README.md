@@ -16,8 +16,7 @@ Voici les stratégies que nous avons implémenté :
 - Lorsqu'A2 reçoit une proposition, il peut :  
   - Si l'item est dans les 10% des items préférés, il *ACCEPT*: A1 peut alors *COMMIT* l'item, les 2 agents sont tombés d'accord.
   - Sinon, il *ASK WHY* et A1 doit argumenter.
-- Sinon, il *ASK WHY*, et A1 doit argumenter.
-- A1 donne son meilleur argument : il s'agit du critère le plus important pour A1 qui a une valeur supérieure à 4 (Good ou Very Good).
+- A1 donne son meilleur argument : il s'agit du critère le plus important pour A1 qui a une valeur supérieure à 4 (Good ou Very Good) (*List_supporting_proposal*).
 - A2 vérifie s'il peut attaquer l'argument : on suit la méthode donnée dans le TP (*List_attacking_proposal*); sinon il *ACCEPT* l'item, le dialogue se termine après les deux *COMMIT*
 - Lorsque A1 reçoit un contre-argument, il peut :
   - *ARGUE* son meilleur argument qui n'a pas encore été donné (retour à l'étape précédente)
