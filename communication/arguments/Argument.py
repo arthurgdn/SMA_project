@@ -22,6 +22,14 @@ class Argument:
         self.item = item
         self.comparison_list = []
         self.couple_values_list = []
+
+    def __str__(self):
+        string = str(self.item) + " : "
+        for couple_value in self.couple_values_list:
+            string += couple_value.criterion_name.name + " = " + str(couple_value.value) + " "
+        for comparison in self.comparison_list:
+            string += comparison.best_criterion_name + " > " + comparison.worst_criterion_name + " "
+        return string
     
     def add_premiss_comparison(self, criterion_name_1, criterion_name_2):
         """Adds a premiss comparison in the comparison list.

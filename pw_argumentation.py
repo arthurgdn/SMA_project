@@ -54,9 +54,10 @@ class ArgumentAgent(CommunicatingAgent) :
                 self.list_items.remove(item)
                 print(self.get_name() + " : commit")
             
-            else:
-                self.send_message(Message(self.get_name(), message.get_exp(), MessagePerformative.ARGUE, None))
-                print(self.get_name() + " : argue")
+            elif performative == MessagePerformative.ASK_WHY:
+                premiss = self.support_proposal(item)
+                self.send_message(Message(self.get_name(), message.get_exp(), MessagePerformative.ARGUE, premiss))
+                print(self.get_name() + " : argue : " + str(premiss))
 
     def get_preference(self):
         return self.preference
@@ -75,11 +76,11 @@ class ArgumentAgent(CommunicatingAgent) :
         based on agent’s preferences )
         """
         supporting_premisses = []
-        for criterion_name in self.preference.get_criterion_name_list():
-            value = self.preference.get_value(item, criterion_name)
+        for criterion_name in preferences.get_criterion_name_list():
+            value = preferences.get_value(item, criterion_name)
             if value >= 4:
                 argument = Argument(True, item)
-                argument.add_premiss_couple_values(CoupleValue(criterion_name, value))
+                argument.add_premiss_couple_values(criterion_name, value)
                 supporting_premisses.append({"argument": argument, "value": value})
         supporting_premisses.sort(key=lambda premiss:premiss["value"], reverse=True)
 
@@ -95,8 +96,8 @@ class ArgumentAgent(CommunicatingAgent) :
         based on preferences )
         """
         attacking_premisses = []
-        for criterion_name in self.preference.get_criterion_name_list():
-            value = self.preference.get_value(item, criterion_name)
+        for criterion_name in preferences.get_criterion_name_list():
+            value = preferences.get_value(item, criterion_name)
             if value <= 2:
                 argument = Argument(False, item)
                 argument.add_premiss_couple_values(CoupleValue(criterion_name, value))
@@ -107,10 +108,46 @@ class ArgumentAgent(CommunicatingAgent) :
         for attacking_premiss in attacking_premisses:
             result.append(attacking_premiss["argument"])
         return result
+    
+    def support_proposal(self, item):
+        """
+        Used when the agent receives " ASK_WHY " after having proposed an item
+        : param item : str - name of the item which was proposed
+        : return : string - the strongest supportive argument
+        """
+        supporting_premisses = self.List_supporting_proposal(item, self.preference)
+        return supporting_premisses[0]
 
-                
+    def can_attack (self, argument):
+        """ returns if an argument can be attacked
+        : param argument :
+        : return : boolean, Argument
+        """
+        couple_value = argument.couple_values_list[0] if len(argument.couple_values_list) > 0 else None
+        if couple_value:
+            self_couple_value = self.preference.get_value(argument.item, couple_value.criterion_name)
+            # The argument can be attacked if the agent's criterion value is lower than the one of the other agent
+            if self_couple_value < 4 and self_couple_value < couple_value.value:
+                attack = Argument(False, argument.item)
+                attack.add_premiss_couple_values(couple_value.criterion_name, self_couple_value)
+                return True, attack
+            
+            # The argument can be attacked if the agent prefers another item on the same criterion value suggested by the other agent
+            preferred_item = None
+            for item in self.list_items:
+                criterion_value = self.preference.get_value(item, couple_value.criterion_name)
+                if item.get_name() != argument.item.get_name() and self.preference.is_preferred_item(item, argument.item) and  criterion_value > couple_value.value:
+                    preferred_item = item
+            if preferred_item:
+                attack = Argument(False, item)
+                attack.add_premiss_couple_values(couple_value.criterion_name, self.preference.get_value(preferred_item, couple_value.criterion_name))
+                return True, attack
+            
+            attacking_proposals = self.List_attacking_proposal(argument.item, self.preference)
+            if len(attacking_proposals) > 0:
+                return True, attacking_proposals[0]
 
-class ArgumentModel(Model) :
+class ArgumentModel(Model):
     """ ArgumentModel which inherit from Model .
     """
     def __init__ (self) :
