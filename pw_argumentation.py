@@ -73,7 +73,7 @@ class ArgumentAgent(CommunicatingAgent) :
                     premiss = self.support_proposal(item_argument.item)
                     self.send_message(Message(self.get_name(), message.get_exp(), MessagePerformative.ARGUE, premiss))
                     print(self.get_name() + " : argue : " + str(premiss))
-
+            else: return True
 
     def get_preference(self):
         return self.preference
@@ -173,6 +173,7 @@ class ArgumentModel(Model):
         self.__messages_service = MessageService(self.schedule)
         #Generate items
         self.items = [Item("ICED", "ICE Diesel Engine"), Item("E", "Electric Engine")]
+        self.argumentation_finished = False
         
         #Generate agents
         for i in range(1,3): #we can modify this later to handle n agents
@@ -184,7 +185,9 @@ class ArgumentModel(Model):
 
     def step(self):
         self.__messages_service.dispatch_messages()
-        self.schedule.step()
+        done = self.schedule.step()
+        if done:
+            self.argumentation_finished = True
 
 if __name__ == "__main__":
     argument_model = ArgumentModel()
