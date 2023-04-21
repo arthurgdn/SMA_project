@@ -99,6 +99,7 @@ class ArgumentAgent(CommunicatingAgent) :
             
             elif performative == MessagePerformative.REFUSE:
                 best_item = self.preference.most_preferred(self.list_items)
+                self.list_items.remove(best_item)
                 self.send_message(Message(self.get_name(), message.get_exp(), MessagePerformative.COMMIT, best_item))
                 print(self.get_name() + " : commit")
 
