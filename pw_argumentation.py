@@ -1,4 +1,5 @@
 from copy import deepcopy
+from tqdm import tqdm
 import random
 from communication.arguments.CoupleValue import CoupleValue
 from mesa import Model
@@ -69,9 +70,16 @@ class ArgumentAgent(CommunicatingAgent) :
             # If we receive an AskWhy => the agent supports the item it had proposed
             elif performative == MessagePerformative.ASK_WHY:
                 premiss = self.support_proposal(item)
-                self.send_message(Message(self.get_name(), message.get_exp(), MessagePerformative.ARGUE, premiss))
-                print(self.get_name() + " : argue : " + str(premiss))
-                self.arguments_given.append(premiss)
+                if premiss:
+                    self.send_message(Message(self.get_name(), message.get_exp(), MessagePerformative.ARGUE, premiss))
+                    print(self.get_name() + " : argue : " + str(premiss))
+                    self.arguments_given.append(premiss)
+                #If there is no supporting proposal for his best item, the agent gives up    
+                else:
+                    message_to_send = Message(self.get_name(), message.get_exp(), MessagePerformative.GIVEUP, item)
+                    self.send_message(message_to_send)
+                    print(self.get_name() + " : give up")
+                    self.model.not_succeeded = True
 
             # If we receive an argument
             elif performative == MessagePerformative.ARGUE:
@@ -119,6 +127,8 @@ class ArgumentAgent(CommunicatingAgent) :
                             message_to_send = Message(self.get_name(), message.get_exp(), MessagePerformative.GIVEUP, item)
                             self.send_message(message_to_send)
                             print(self.get_name() + " : give up")
+                            self.model.not_succeeded = True
+            else: self.model.argumentation_finished = True
                         
                    
     def get_preference(self):
@@ -224,9 +234,15 @@ class ArgumentModel(Model):
         self.schedule = RandomActivation (self)
         self.__messages_service = MessageService(self.schedule)
         #Generate items
-        self.items = [Item("ICED", "ICE Diesel Engine"), Item("E", "Electric Engine")]
+        self.items = [Item("ICED", "ICE Diesel Engine"), Item("E", "Electric Engine"), Item("V", "V Engine"), Item("L", "L Engine"), Item("R", "R Engine"), Item("O", "O Engine"), Item("M", "M Engine")]
+        self.argumentation_finished = False
+        self.not_succeeded = False
+        self.generate_agents()
         
         #Generate agents
+    def generate_agents(self):
+        for agent in self.schedule.agents:
+            self.schedule.remove(agent)
         for i in range(1,3): #we can modify this later to handle n agents
             preferences = Preferences()
             agent = ArgumentAgent(i, self, "Agent"+str(i), preferences)
@@ -234,21 +250,37 @@ class ArgumentModel(Model):
             self.schedule.add(agent)
         self.running = True
 
+    def reset(self):
+        self.argumentation_finished = False
+        self.not_succeeded = False
+        self.generate_agents()
+
     def step(self):
         self.__messages_service.dispatch_messages()
-        self.schedule.step()
+        done = self.schedule.step()
 
-if __name__ == "__main__":
-    argument_model = ArgumentModel()
+def start_argumentation(argument_model):
+    argument_model.reset()
     agent1 = argument_model.schedule.agents[0]
     agent2 = argument_model.schedule.agents[1]
 
-    proposed_item = random.choice(argument_model.items)
+    proposed_item = agent1.preference.most_preferred(argument_model.items)
     message = Message(agent1.get_name(), agent2.get_name(), MessagePerformative.PROPOSE, proposed_item)
     agent1.send_message(message)
     print("Agent1 to Agent2: ", proposed_item.get_name())
 
     step = 0
-    while step < 50:
+    while not argument_model.argumentation_finished:
         argument_model.step()
         step += 1
+    return step, argument_model.not_succeeded
+
+if __name__ == "__main__":
+    total_steps = 0
+    total_not_succeeded = 0
+    argument_model = ArgumentModel()
+    for i in tqdm(range(1000)):
+        steps, not_succeeded = start_argumentation(argument_model)
+        total_steps+= steps
+        total_not_succeeded += 1 if not_succeeded else 0
+    print(total_steps, total_not_succeeded)
