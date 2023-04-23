@@ -36,6 +36,8 @@ Voici les stratégies que nous avons implémenté :
 
 ### Exemples
 
+Voici deux exemples en se plaçant dans une configuration avec 2 moteurs et 5 critères pour ces moteurs.
+
 ![Exemple de dialogue entre deux agents 1](example1.png?raw=true "Exemple 1")
 
 Dans ce premier exemple de dialogue, l'agent 1 propose le moteur ICED et le justifie avec les critères qui sont les plus importants pour lui (DURABILITY puis ENVIRONMENT_IMPACT et PRODUCTION_COST), les deux premiers arguments ne sont pas convaincants pour l'agent 2 qui accepte lorsque l'agent 1 met en avant l'argument PRODUCTION_COST qui est satisfaisant pour lui (GOOD ou VERY GOOD).
