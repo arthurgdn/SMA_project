@@ -135,7 +135,7 @@ class ArgumentAgent(CommunicatingAgent) :
         return self.preference
 
     def generate_preferences(self, List_items):
-        criterion_name_list = [CriterionName.CONSUMPTION, CriterionName.DURABILITY, CriterionName.ENVIRONMENT_IMPACT, CriterionName.NOISE, CriterionName.PRODUCTION_COST]
+        criterion_name_list = [CriterionName.CONSUMPTION, CriterionName.DURABILITY, CriterionName.ENVIRONMENT_IMPACT, CriterionName.NOISE, CriterionName.PRODUCTION_COST]#, CriterionName.REPAIRABILITY, CriterionName.POWER]
         self.preference.set_criterion_name_list(criterion_name_list)
         for item in List_items:
             for criterion_name in criterion_name_list:
@@ -234,7 +234,7 @@ class ArgumentModel(Model):
         self.schedule = RandomActivation (self)
         self.__messages_service = MessageService(self.schedule)
         #Generate items
-        self.items = [Item("ICED", "ICE Diesel Engine"), Item("E", "Electric Engine"), Item("V", "V Engine"), Item("L", "L Engine"), Item("R", "R Engine"), Item("O", "O Engine"), Item("M", "M Engine")]
+        self.items = [Item("ICED", "ICE Diesel Engine"), Item("E", "Electric Engine")]
         self.argumentation_finished = False
         self.not_succeeded = False
         self.generate_agents()
@@ -279,7 +279,7 @@ if __name__ == "__main__":
     total_steps = 0
     total_not_succeeded = 0
     argument_model = ArgumentModel()
-    for i in tqdm(range(1000)):
+    for i in range(1):
         steps, not_succeeded = start_argumentation(argument_model)
         total_steps+= steps
         total_not_succeeded += 1 if not_succeeded else 0
