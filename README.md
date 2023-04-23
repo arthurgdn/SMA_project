@@ -48,10 +48,10 @@ Dans ce deuxième exemple de dialogue, l'agent 1 propose d'abord le moteur E qu'
 
 Nous avons étudié l'évolution du nombre de messages échangés en moyenne entre les agents ainsi que le nombre d'échanges se terminants par un GIVE_UP lorsque l'on fait varier deux paramètres: le nombre d'items (ICED, E...) et le nombre de critères (NOISE, CONSUMPTION, ...). Pour réaliser ces statistiques nous avons simulé 1000 dialogues à paramètres fixes et avons effectué une moyenne des deux indicateurs étudiés.
 
-![Influence du nombre d'items](stats_items?raw=true "Influence du nombre d'items")
+![Influence du nombre d'items](stats_items.png?raw=true "Influence du nombre d'items")
 
 On observe ici que plus il y a d'items différents plus le nombre d'échanges moyens au cours d'un dialogue augmente. Cela s'explique par le fait que l'agent 1 aura tendance à proposer plus d'items lorsque le second agent n'est pas convaincu par les arguments proposés. De même on remarque une diminution du nombre d'échanges se terminant par un GIVE UP puisque les agents vont pouvoir se mettre plus facilement d'accord sur un autre item.
 
-![Influence du nombre de critères](stats_criteria?raw=true "Influence du nombre de critères")
+![Influence du nombre de critères](stats_criteria.png?raw=true "Influence du nombre de critères")
 
 On observe ici que lorsque le nombre de critères augmente, le nombre de messages échangés en moyenne par dialogue évolue peu, cependant le nombre d'échanges se terminant par une GIVE UP diminue fortement. Cela s'observe car plus il y a de critères différents, plus les agents vont pouvoir trouver un critère sur lequel ils peuvent se mettre d'accord pour dire qu'un moteur est satisfaisant.
